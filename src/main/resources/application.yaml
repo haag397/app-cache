@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: learn-cache
+
+logging:
+  file:
+    name: logs/app.log
