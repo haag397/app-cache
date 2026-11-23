@@ -111,3 +111,24 @@ set -o pipefail
 
 Replace `test` with the lifecycle phase or goal you want to run. Logs are
 local files and are not tracked by Git.
+
+## GitHub Actions
+
+The single workflow in `.github/workflows/ci.yml` requests squash auto-merge for
+non-draft pull requests targeting main, created by the repository owner from
+this repository. It checks that the head commit has not changed before
+requesting the merge.
+
+Run `./mvnw clean verify` locally before pushing. GitHub does not run the build
+or tests, and the merge job cannot verify that local tests passed.
+
+Enable **Allow squash merging** and **Allow auto-merge** under
+Settings → General → Pull Requests. Repository or organization policies must
+permit the workflow token to merge pull requests. Remove the old required
+**Verify Java 21** check from any main branch protection rule or ruleset,
+otherwise merges will wait for a check that is no longer produced.
+Other required reviews and branch rules still apply.
+
+Push the branch and open a pull request to start the automation. When all
+configured merge requirements are met, GitHub can merge it automatically.
+The workflow does not deploy to a server.
