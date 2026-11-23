@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="urn:learn-cache:deposits:v1"
+           targetNamespace="urn:learn-cache:deposits:v1" elementFormDefault="qualified">
+    <xs:simpleType name="depositId">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="customerName">
+        <xs:restriction base="xs:token">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="120"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="amount">
+        <xs:restriction base="xs:decimal">
+            <xs:minExclusive value="0"/>
+            <xs:totalDigits value="18"/>
+            <xs:fractionDigits value="2"/>
+            <xs:maxExclusive value="10000000000000000"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:complexType name="deposit">
+        <xs:sequence>
+            <xs:element name="id" type="tns:depositId"/>
+            <xs:element name="customerName" type="tns:customerName"/>
+            <xs:element name="amount" type="tns:amount"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:element name="openDepositRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="customerName" type="tns:customerName"/>
+                <xs:element name="amount" type="tns:amount"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="openDepositResponse">
+        <xs:complexType>
+            <xs:sequence><xs:element name="deposit" type="tns:deposit"/></xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="getDepositRequest">
+        <xs:complexType>
+            <xs:sequence><xs:element name="id" type="tns:depositId"/></xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="getDepositResponse">
+        <xs:complexType>
+            <xs:sequence><xs:element name="deposit" type="tns:deposit"/></xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="closeDepositRequest">
+        <xs:complexType>
+            <xs:sequence><xs:element name="id" type="tns:depositId"/></xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="closeDepositResponse">
+        <xs:complexType>
+            <xs:sequence><xs:element name="id" type="tns:depositId"/></xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

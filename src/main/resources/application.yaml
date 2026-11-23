@@ -1,4 +1,9 @@
 spring:
+  webservices:
+    path: /soap
+    servlet:
+      init:
+        transformWsdlLocations: true
   application:
     name: learn-cache
   datasource:

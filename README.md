@@ -132,3 +132,95 @@ Other required reviews and branch rules still apply.
 Push the branch and open a pull request to start the automation. When all
 configured merge requirements are met, GitHub can merge it automatically.
 The workflow does not deploy to a server.
+
+## SOAP deposit service
+
+The REST API and SOAP endpoint use the same DepositService and selected cache
+provider. SOAP 1.1 messages are accepted at `POST /soap`. Import
+`http://localhost:8080/soap/deposits.wsdl` into SoapUI to explore all operations.
+
+| Operation | Behavior |
+| --- | --- |
+| openDeposit | Opens a deposit in PostgreSQL and populates the selected cache. |
+| getDeposit | Reads through the existing annotation-based cache-aside service. |
+| closeDeposit | Deletes the deposit and evicts its cached value after successful deletion. |
+
+The contract is `src/main/resources/soap/deposits-v1.xsd`, with the versioned
+namespace `urn:learn-cache:deposits:v1`. Maven generates the JAXB request and
+response types in `target/generated-sources/jaxb` during generate-sources.
+Run `./mvnw generate-sources` and reload Maven if IntelliJ cannot resolve the
+contract types. Generated sources are build outputs and should not be edited.
+
+Start the application using the database and cache setup described above, then
+send a SOAP request:
+
+```sh
+curl -i http://localhost:8080/soap \
+  -H 'Content-Type: text/xml; charset=UTF-8' \
+  --data-binary @- <<'XML'
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:d="urn:learn-cache:deposits:v1">
+  <soap:Body>
+    <d:openDepositRequest>
+      <d:customerName>Sara</d:customerName>
+      <d:amount>2500.25</d:amount>
+    </d:openDepositRequest>
+  </soap:Body>
+</soap:Envelope>
+XML
+```
+
+For lookup or closure, replace the element inside Body with one of these
+payloads and use the id returned by opening:
+
+```xml
+<d:getDepositRequest><d:id>REPLACE_WITH_UUID</d:id></d:getDepositRequest>
+```
+
+```xml
+<d:closeDepositRequest><d:id>REPLACE_WITH_UUID</d:id></d:closeDepositRequest>
+```
+
+Requests and responses are validated against XSD. Invalid names, amounts,
+missing required fields, and malformed identifiers return a SOAP Client Fault.
+A missing deposit also returns a Client Fault. Unexpected exceptions produce
+a generic Server Fault while the exception is logged on the server. SOAP 1.1
+faults use HTTP 500, so clients must inspect the fault code rather than
+interpreting every HTTP 500 as a server-side application defect.
+
+Run `./mvnw verify -Dit.test=DepositSoapIT` for the unit suite plus SOAP
+integration tests. Docker is needed. These tests use a real HTTP server on
+a random port and a Testcontainers PostgreSQL instance. They exercise WSDL
+publication, schema validation, faults, and the open/read/close lifecycle.
+They also prove that SOAP and REST share the same cached deposit.
+
+### Interview discussion
+
+- **Why contract first?** XSD defines allowed XML before endpoint code.
+  JAXB generates Java DTOs from that contract and WSDL describes operations,
+  messages, and the service address. A versioned namespace allows a future
+  incompatible v2 contract without silently changing v1 clients.
+- **How are requests routed?** `@Endpoint` registers the SOAP adapter,
+  `@PayloadRoot` matches namespace and local element name, and
+  `@RequestPayload` / `@ResponsePayload` bind XML through JAXB.
+  `@RequiredArgsConstructor` injects the existing service.
+- **Where do rules belong?** XSD validates message structure and simple
+  constraints at the boundary. DepositService enforces the domain rules and
+  persistence behavior shared by REST and SOAP.
+- **Why map DTOs?** Generated SOAP types describe the wire contract.
+  Mapping them to the existing deposit model keeps generated classes out
+  of persistence and cache code.
+- **How does caching work across protocols?** Both adapters call the same
+  Spring service proxy, so the same cache annotations and keys apply.
+- **What about retries?** Opening currently creates a fresh UUID every time.
+  An automatic retry after a timeout can create a duplicate deposit.
+  A real banking API needs a client request id and a database uniqueness
+  constraint with transactional handling before safe automatic retries.
+- **What is outside this lab?** Authentication, authorization, WS-Security,
+  audit trails, concurrent balance operations, and atomic DB/cache consistency
+  are not implemented. Contract validation and caching alone do not make
+  this a production banking service.
+
+References:
+[Spring SOAP guide](https://spring.io/guides/gs/producing-web-service/)
+and [Spring-WS reference](https://docs.spring.io/spring-ws/docs/current/reference/html/).
