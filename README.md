@@ -111,3 +111,26 @@ set -o pipefail
 
 Replace `test` with the lifecycle phase or goal you want to run. Logs are
 local files and are not tracked by Git.
+
+## GitHub Actions
+
+The single workflow in `.github/workflows/ci.yml` builds the application and
+runs unit and integration tests with Java 21 on pull requests targeting main
+and pushes to main. Testcontainers uses Docker on the GitHub-hosted runner.
+
+To block merges when tests fail, require the **Verify Java 21** status check
+in a branch rule for main. Require branches to be up to date before merging,
+so the tested changes include the latest main.
+
+After verification succeeds, a separate job requests squash auto-merge for
+non-draft pull requests created by the repository owner from this repository.
+It matches the head commit to avoid merging a different revision. The job has
+write permission and does not check out or run application code. Fork pull
+requests are tested but do not enter the merge job.
+
+Before running this workflow, enable **Allow squash merging** and
+**Allow auto-merge** in Settings → General → Pull Requests. Repository or
+organization policies must also permit the workflow token to merge pull
+requests. Required reviews and other branch rules still apply. Conflicts or
+failed checks require a fix. Changes must be pushed and a pull request opened
+before automation runs. The workflow does not deploy to a server.
