@@ -114,23 +114,21 @@ local files and are not tracked by Git.
 
 ## GitHub Actions
 
-The single workflow in `.github/workflows/ci.yml` builds the application and
-runs unit and integration tests with Java 21 on pull requests targeting main
-and pushes to main. Testcontainers uses Docker on the GitHub-hosted runner.
+The single workflow in `.github/workflows/ci.yml` requests squash auto-merge for
+non-draft pull requests targeting main, created by the repository owner from
+this repository. It checks that the head commit has not changed before
+requesting the merge.
 
-To block merges when tests fail, require the **Verify Java 21** status check
-in a branch rule for main. Require branches to be up to date before merging,
-so the tested changes include the latest main.
+Run `./mvnw clean verify` locally before pushing. GitHub does not run the build
+or tests, and the merge job cannot verify that local tests passed.
 
-After verification succeeds, a separate job requests squash auto-merge for
-non-draft pull requests created by the repository owner from this repository.
-It matches the head commit to avoid merging a different revision. The job has
-write permission and does not check out or run application code. Fork pull
-requests are tested but do not enter the merge job.
+Enable **Allow squash merging** and **Allow auto-merge** under
+Settings → General → Pull Requests. Repository or organization policies must
+permit the workflow token to merge pull requests. Remove the old required
+**Verify Java 21** check from any main branch protection rule or ruleset,
+otherwise merges will wait for a check that is no longer produced.
+Other required reviews and branch rules still apply.
 
-Before running this workflow, enable **Allow squash merging** and
-**Allow auto-merge** in Settings → General → Pull Requests. Repository or
-organization policies must also permit the workflow token to merge pull
-requests. Required reviews and other branch rules still apply. Conflicts or
-failed checks require a fix. Changes must be pushed and a pull request opened
-before automation runs. The workflow does not deploy to a server.
+Push the branch and open a pull request to start the automation. When all
+configured merge requirements are met, GitHub can merge it automatically.
+The workflow does not deploy to a server.
