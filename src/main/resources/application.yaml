@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: learn-cache
+  datasource:
+    url: jdbc:postgresql://localhost:${POSTGRES_PORT:15432}/learn_cache
+    username: cache_lab
+    password: cache_lab
+  data:
+    redis:
+      host: localhost
+      port: ${REDIS_PORT:16379}
+      timeout: 2s
+  sql:
+    init:
+      mode: always
+  cache:
+    type: ${CACHE_TYPE:caffeine}
+    cache-names: deposits
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=${CACHE_TTL:60s}
+
+app:
+  cache:
+    ttl: ${CACHE_TTL:60s}
+
+logging:
+  file:
+    name: logs/app.log
+  level:
+    org.springframework.cache.interceptor: TRACE
